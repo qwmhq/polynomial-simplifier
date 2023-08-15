@@ -30,8 +30,8 @@ pub fn split_monomial(monomial: &str) -> (i32, String) {
     buffer.clear();
 
     // push the variables to the buffer
-    if first_variable_char.is_some() {
-        buffer.push(first_variable_char.unwrap());
+    if let Some(c) = first_variable_char {
+        buffer.push(c);
     }
     for (_idx, c) in monomial_iter {
         buffer.push(c);
@@ -49,6 +49,7 @@ pub fn simplify(polynomial: &str) -> String {
     let mut a = 0;
     let mut monomial_map: HashMap<String, i32> = HashMap::new();
 
+    // add the coefficients and variables to the hash map
     for (i, c) in polynomial.chars().enumerate() {
         let monomial_slice: &str;
         if i != 0 && (c == '-' || c == '+') {
@@ -78,37 +79,35 @@ pub fn simplify(polynomial: &str) -> String {
                 return a.len().cmp(&b.len());
             }
         }
-        return a.cmp(&b);
+        a.cmp(&b)
     });
 
     // combine the coefficient and variables into monomials and append to the result string
     let mut middle = false;
     for var in variables.into_iter() {
         let coeff = monomial_map.get(var).unwrap();
-        match *coeff {
-            0 => continue,
-            -1 => {
-                result.push('-');
-                if var.is_empty() {
-                    result.push('1');
-                }
-            }
-            1 => {
-                if middle {
-                    result.push('+');
-                }
-                if var.is_empty() {
-                    result.push('1');
-                }
-            }
-            x => {
-                if middle && x.is_positive() {
-                    result.push('+');
-                }
-                result.push_str(coeff.to_string().as_str());
-            }
+
+        let mut sign = "";
+        if coeff.is_negative() {
+            sign = "-";
+        } else if middle && coeff.is_positive() {
+            sign = "+";
         }
-        result.push_str(var);
+
+        let monomial = match *coeff {
+            0 => continue,
+            1 | -1 => {
+                if var.is_empty() {
+                    format!("{sign}1")
+                } else {
+                    format!("{sign}{var}")
+                }
+            }
+            _ => {
+                format!("{sign}{c}{var}", c = coeff.abs())
+            }
+        };
+        result.push_str(&monomial);
         middle = true;
     }
     if result.is_empty() {
